@@ -256,7 +256,7 @@ mod tests {
             loop {
                 let obs = merge_planner_handler.process_pending_and_observe().await;
                 assert_eq!(obs.obs_type, ObservationType::Alive);
-                let merge_ops = merge_op_inbox.drain_available_message_for_test();
+                let merge_ops = merge_op_inbox.drain_available_messages_for_test();
                 if merge_ops.is_empty() {
                     break;
                 }

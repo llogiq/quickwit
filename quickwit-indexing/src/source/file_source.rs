@@ -340,7 +340,7 @@ mod tests {
                 "num_lines_processed": 98
             })
         );
-        let indexer_msgs = inbox.drain_available_message_for_test();
+        let indexer_msgs = inbox.drain_available_messages_for_test();
         assert!(
             matches!(&indexer_msgs[0], IndexerMessage::Batch(raw_batch) if raw_batch.docs[0].starts_with("2\n"))
         );

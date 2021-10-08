@@ -316,7 +316,7 @@ mod tests {
             uploader_handle.process_pending_and_observe().await.obs_type,
             ObservationType::Alive
         );
-        let publish_futures = inbox.drain_available_message_for_test();
+        let publish_futures = inbox.drain_available_messages_for_test();
         assert_eq!(publish_futures.len(), 1);
         let publish_future = publish_futures.into_iter().next().unwrap();
         let publisher_message = publish_future.await?;
@@ -419,7 +419,7 @@ mod tests {
             uploader_handle.process_pending_and_observe().await.obs_type,
             ObservationType::Alive
         );
-        let publish_futures = inbox.drain_available_message_for_test();
+        let publish_futures = inbox.drain_available_messages_for_test();
         assert_eq!(publish_futures.len(), 1);
         let publish_future = publish_futures.into_iter().next().unwrap();
         let publisher_message = publish_future.await?;

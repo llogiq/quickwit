@@ -272,7 +272,7 @@ impl<Message: fmt::Debug> Inbox<Message> {
     ///
     /// Warning this iterator might never be exhausted if there is a living
     /// mailbox associated to it.
-    pub fn drain_available_message_for_test(&self) -> Vec<Message> {
+    pub fn drain_available_messages_for_test(&self) -> Vec<Message> {
         self.rx
             .drain_low_priority()
             .into_iter()

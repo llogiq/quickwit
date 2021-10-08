@@ -400,7 +400,7 @@ mod tests {
             packager_handle.process_pending_and_observe().await.obs_type,
             ObservationType::Alive
         );
-        let packaged_splits = inbox.drain_available_message_for_test();
+        let packaged_splits = inbox.drain_available_messages_for_test();
         assert_eq!(packaged_splits.len(), 1);
         Ok(())
     }
@@ -430,7 +430,7 @@ mod tests {
             packager_handle.process_pending_and_observe().await.obs_type,
             ObservationType::Alive
         );
-        let packaged_splits = inbox.drain_available_message_for_test();
+        let packaged_splits = inbox.drain_available_messages_for_test();
         assert_eq!(packaged_splits.len(), 1);
         Ok(())
     }
@@ -461,7 +461,7 @@ mod tests {
             packager_handle.process_pending_and_observe().await.obs_type,
             ObservationType::Alive
         );
-        let mut packaged_splits = inbox.drain_available_message_for_test();
+        let mut packaged_splits = inbox.drain_available_messages_for_test();
         assert_eq!(packaged_splits.len(), 1);
         assert_eq!(packaged_splits.pop().unwrap().into_iter().count(), 2);
         Ok(())

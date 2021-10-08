@@ -855,7 +855,7 @@ mod tests {
             .send_message(&merge_executor_mailbox, merge_scratch)
             .await?;
         merge_executor_handle.process_pending_and_observe().await;
-        let mut packager_msgs = merge_packager_inbox.drain_available_message_for_test();
+        let mut packager_msgs = merge_packager_inbox.drain_available_messages_for_test();
         assert_eq!(packager_msgs.len(), 1);
         let packager_msg = packager_msgs.pop().unwrap();
         assert_eq!(packager_msg.splits[0].num_docs, 4);
@@ -938,7 +938,7 @@ mod tests {
             .await?;
         mem::drop(merge_executor_mailbox);
         let _ = merge_executor_handle.join().await;
-        let mut packager_msgs = merge_packager_inbox.drain_available_message_for_test();
+        let mut packager_msgs = merge_packager_inbox.drain_available_messages_for_test();
         assert_eq!(packager_msgs.len(), 1);
         let mut splits = packager_msgs.pop().unwrap().splits;
         assert_eq!(splits.len(), 3);

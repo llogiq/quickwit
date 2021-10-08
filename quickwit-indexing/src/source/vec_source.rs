@@ -183,7 +183,7 @@ mod tests {
         let (actor_termination, last_observation) = vec_source_handle.join().await;
         assert!(actor_termination.is_success());
         assert_eq!(last_observation, json!({"next_item_idx": 10}));
-        let messages = inbox.drain_available_message_for_test();
+        let messages = inbox.drain_available_messages_for_test();
         assert!(
             matches!(&messages[0], &IndexerMessage::Batch(ref raw_batch) if &raw_batch.docs[0] == "2")
         );

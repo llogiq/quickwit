@@ -498,7 +498,7 @@ mod tests {
                 overall_num_bytes: 525
             }
         );
-        let output_messages = inbox.drain_available_message_for_test();
+        let output_messages = inbox.drain_available_messages_for_test();
         assert_eq!(output_messages.len(), 1);
         assert_eq!(output_messages[0].splits[0].num_docs, 3);
         let sort_by_field = output_messages[0].splits[0]
@@ -568,7 +568,7 @@ mod tests {
                 overall_num_bytes: 137
             }
         );
-        let output_messages = inbox.drain_available_message_for_test();
+        let output_messages = inbox.drain_available_messages_for_test();
         assert_eq!(output_messages.len(), 1);
         assert_eq!(output_messages[0].splits[0].num_docs, 1);
         Ok(())
@@ -612,7 +612,7 @@ mod tests {
                 overall_num_bytes: 137
             }
         );
-        let output_messages = inbox.drain_available_message_for_test();
+        let output_messages = inbox.drain_available_messages_for_test();
         assert_eq!(output_messages.len(), 1);
         assert_eq!(output_messages[0].splits[0].num_docs, 1);
         Ok(())
