@@ -51,6 +51,8 @@ use quickwit_storage::{quickwit_storage_uri_resolver, BundleStorage, Storage};
 use quickwit_telemetry::payload::TelemetryEvent;
 use tracing::debug;
 
+pub mod stats;
+
 /// Throughput calculation window size.
 const THROUGHPUT_WINDOW_SIZE: usize = 5;
 
