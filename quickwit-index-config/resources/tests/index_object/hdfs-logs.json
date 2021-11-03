@@ -1,0 +1,31 @@
+{
+    "index_id": "hdfs-logs",
+    "index_uri": "s3://quickwit-indexes/hdfs-logs",
+    "indexing_settings": {
+        "commit_policy": {},
+        "demux_policy": {},
+        "merge_policy": {},
+        "retention_policy": {},
+        "resources": {
+            "num_threads": 1,
+            "heap_size": "1G"
+        }
+    },
+    "sources": [
+        {
+            "source_id": "hdfs-logs-kafka-source",
+            "source_type": "kafka",
+            "params": {
+                "bootstrap.servers": "localhost:9092",
+                "topic": "cloudera-cluster-logs"
+            }
+        },
+        {
+            "source_id": "hdfs-logs-kinesis-source",
+            "source_type": "kinesis",
+            "params": {
+                "stream_name": "emr-cluster-logs"
+            }
+        }
+    ]
+}

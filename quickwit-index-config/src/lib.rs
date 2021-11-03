@@ -27,6 +27,7 @@
 mod config;
 mod default_index_config;
 mod error;
+mod index_object;
 mod query_builder;
 mod wikipedia_config;
 

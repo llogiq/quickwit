@@ -1,0 +1,39 @@
+index_id = "hdfs-logs"
+index_uri = "s3://quickwit-indexes/hdfs-logs"
+
+[indexing_settings.commit_policy]
+key = "value"
+
+[indexing_settings.demux_policy]
+key = "value"
+
+[indexing_settings.merge_policy]
+key = "value"
+
+[indexing_settings.retention_policy]
+key = "value"
+
+[indexing_settings.resources]
+num_threads = 1
+heap_size = "1G"
+
+[schema] # or mapping? mappings? 
+default_search_fields = [ "body", "title" ]
+store_source = true
+demux_field = "tenant_id"
+timestamp_field = "ts"
+field_mappings = [
+  { name = "body", type = "text"},
+  { name = "title", type = "text"},
+  { name = "url", type = "text", indexed = false, stored = false }
+]
+
+[[sources]]
+source_id = "hdfs-logs-kafka-source"
+source_type = "kafka"
+params = { "bootstrap.servers" = "localhost:9092", "topic" = "cloudera-cluster-logs" }
+
+[[sources]]
+source_id = "hdfs-logs-kinesis-source"
+source_type = "kinesis"
+params = { "stream_name" = "emr-cluster-logs" }
