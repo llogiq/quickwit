@@ -2,10 +2,13 @@ index_id: hdfs-logs
 index_uri: s3://quickwit-indexes/hdfs-logs
 
 indexing_settings:
-  commit_policy: {}
-  demux_policy: {}
-  merge_policy: {}
-  retention_policy: {}
+  commit_timeout_secs: 60
+  split_max_num_docs: 10000000
+  merge_policy:
+    demux_factor: 6
+    merge_factor: 10
+    max_merge_factor: 12
+    min_level_num_docs: 100000
   resources:
     num_threads: 1
     heap_size: 1G
@@ -14,5 +17,10 @@ sources:
   - source_id: hdfs-logs-kafka-source
     source_type: kafka
     params:
-      bootstrap.servers: localhost:9092
+      bootstrap.servers: host:9092
       topic: cloudera-cluster-logs
+
+  - source_id: hdfs-logs-kinesis-source
+    source_type: kinesis
+    params:
+      stream_name: emr-cluster-logs

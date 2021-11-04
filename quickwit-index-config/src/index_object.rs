@@ -17,6 +17,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+use std::ffi::OsStr;
+use std::path::Path;
+use std::time::Duration;
+
 use anyhow::{bail, Context};
 use byte_unit::Byte;
 use serde::{Deserialize, Serialize};
@@ -24,31 +28,26 @@ use toml;
 
 use crate::IndexConfig;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct IndexingResources {
     pub num_threads: usize,
     pub heap_size: Byte,
 }
 
-// Is here a good centralized place to define those objects?
-#[derive(Serialize, Deserialize)]
-pub struct CommitPolicy {}
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct MergePolicy {
+    pub demux_factor: usize,
+    pub merge_factor: usize,
+    pub max_merge_factor: usize,
+    pub min_level_num_docs: usize,
+}
 
-#[derive(Serialize, Deserialize)]
-pub struct DemuxPolicy {}
-
-#[derive(Serialize, Deserialize)]
-pub struct MergePolicy {}
-
-#[derive(Serialize, Deserialize)]
-pub struct RetentionPolicy {}
-
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct IndexingSettings {
-    pub commit_policy: CommitPolicy,
-    pub demux_policy: DemuxPolicy,
+    pub commit_timeout_secs: usize,
+    /// The maximum number of documents allowed in a split.
+    pub split_max_num_docs: usize,
     pub merge_policy: MergePolicy,
-    pub retention_policy: RetentionPolicy,
     pub resources: IndexingResources,
 }
 
@@ -63,23 +62,44 @@ pub struct SourceConfig {
 pub struct IndexObject {
     pub index_id: String,
     pub index_uri: String,
-    // pub metastore_uri: String,
-    // pub index_mapping: Box<dyn IndexConfig>,
     pub indexing_settings: IndexingSettings,
     pub sources: Vec<SourceConfig>,
 }
 
 impl IndexObject {
+    // TODO: asyncify?
+    pub fn from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
+        let parser_fn = match path.as_ref().extension().and_then(OsStr::to_str) {
+            Some("json") => Self::from_json,
+            Some("toml") => Self::from_toml,
+            Some("yaml") | Some("yml") => Self::from_yaml,
+            Some(extension) => bail!(
+                "Failed to read index config file: file extension `.{}` is not supported. \
+                 Supported file formats and extensions are JSON (.json), TOML (.toml), and YAML \
+                 (.yaml or .yml).",
+                extension
+            ),
+            None => bail!(
+                "Failed to read index config file: file extension is missing. Supported file \
+                 formats and extensions are JSON (.json), TOML (.toml), and YAML (.yaml or .yml)."
+            ),
+        };
+        let file_content = std::fs::read_to_string(path)?;
+        parser_fn(file_content.as_bytes())
+    }
+
     pub fn from_json(bytes: &[u8]) -> anyhow::Result<Self> {
-        serde_json::from_slice::<IndexObject>(bytes).context("Failed to parse JSON index config.")
+        serde_json::from_slice::<IndexObject>(bytes)
+            .context("Failed to parse JSON index config file.")
     }
 
     pub fn from_toml(bytes: &[u8]) -> anyhow::Result<Self> {
-        toml::from_slice::<IndexObject>(bytes).context("Failed to parse TOML index config.")
+        toml::from_slice::<IndexObject>(bytes).context("Failed to parse TOML index config file.")
     }
 
     pub fn from_yaml(bytes: &[u8]) -> anyhow::Result<Self> {
-        serde_yaml::from_slice::<IndexObject>(bytes).context("Failed to parse YAML index config.")
+        serde_yaml::from_slice::<IndexObject>(bytes)
+            .context("Failed to parse YAML index config file.")
     }
 }
 
@@ -96,36 +116,60 @@ mod tests {
         path
     }
 
-    // TODO: macrofy.
-    #[test]
-    fn test_parse_json() -> anyhow::Result<()> {
-        let index_config_filepath = get_resource_path("hdfs-logs.json");
-        let index_config_str = std::fs::read_to_string(index_config_filepath)?;
-        let index_config = IndexObject::from_json(index_config_str.as_bytes())?;
-        Ok(())
+    macro_rules! test_parser {
+        ($test_function_name:ident, $file_extension:expr) => {
+            #[test]
+            fn $test_function_name() -> anyhow::Result<()> {
+                let index_config_filepath =
+                    get_resource_path(&format!("hdfs-logs.{}", stringify!($file_extension)));
+                let index_config = IndexObject::from_file(index_config_filepath)?;
+                assert_eq!(index_config.index_id, "hdfs-logs");
+                assert_eq!(index_config.index_uri, "s3://quickwit-indexes/hdfs-logs");
+                assert_eq!(index_config.indexing_settings.commit_timeout_secs, 60);
+                assert_eq!(
+                    index_config.indexing_settings.split_max_num_docs,
+                    10_000_000
+                );
+                assert_eq!(
+                    index_config.indexing_settings.merge_policy,
+                    MergePolicy {
+                        demux_factor: 6,
+                        merge_factor: 10,
+                        max_merge_factor: 12,
+                        min_level_num_docs: 100_000,
+                    }
+                );
+                assert_eq!(
+                    index_config.indexing_settings.resources,
+                    IndexingResources {
+                        num_threads: 1,
+                        heap_size: Byte::from_bytes(1_000_000_000)
+                    }
+                );
+                assert_eq!(index_config.sources.len(), 2);
+                {
+                    let source = &index_config.sources[0];
+                    assert_eq!(source.source_id, "hdfs-logs-kafka-source");
+                    assert_eq!(source.source_type, "kafka");
+                }
+                {
+                    let source = &index_config.sources[1];
+                    assert_eq!(source.source_id, "hdfs-logs-kinesis-source");
+                    assert_eq!(source.source_type, "kinesis");
+                }
+                Ok(())
+            }
+        };
     }
 
-    #[test]
-    fn test_parse_toml() -> anyhow::Result<()> {
-        let index_config_filepath = get_resource_path("hdfs-logs.toml");
-        let index_config_str = std::fs::read_to_string(index_config_filepath)?;
-        let index_config = IndexObject::from_toml(index_config_str.as_bytes())?;
-        assert_eq!(index_config.index_id, "hdfs-logs");
-        assert_eq!(index_config.index_uri, "s3://quickwit-indexes/hdfs-logs");
-        assert_eq!(index_config.indexing_settings.resources.num_threads, 1);
-        assert_eq!(
-            index_config.indexing_settings.resources.heap_size,
-            Byte::from_bytes(1_000_000_000)
-        );
-        assert_eq!(index_config.sources.len(), 2);
-        Ok(())
-    }
+    test_parser!(test_from_json, json);
+    test_parser!(test_from_toml, toml);
+    test_parser!(test_from_yaml, yaml);
 
-    #[test]
-    fn test_parse_yaml() -> anyhow::Result<()> {
-        let index_config_filepath = get_resource_path("hdfs-logs.yaml");
-        let index_config_str = std::fs::read_to_string(index_config_filepath)?;
-        let index_config = IndexObject::from_yaml(index_config_str.as_bytes())?;
-        Ok(())
-    }
+    // #[test]
+    // fn test_default_values() -> anyhow::Result<()> {
+    //     let index_config_filepath = get_resource_path("hdfs-logs.yaml");
+    //     let index_config = IndexObject::from_file(index_config_filepath)?;
+    //     Ok(())
+    // }
 }
